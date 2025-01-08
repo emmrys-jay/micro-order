@@ -1,0 +1,24 @@
+# exclude any development-specific files
+.vscode/
+.idea/
+
+# exclude any dependency directories
+node_modules/
+vendor/
+
+# exclude build artifacts
+build/
+dist/
+bin/
+tmp/
+log/
+
+# exclude any development-specific files
+*.env
+*.log
+*.test
+*.out
+coverage*
+!config.yml
+
+*.work*

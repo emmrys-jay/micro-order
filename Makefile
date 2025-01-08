@@ -1,0 +1,1 @@
+# Makefile to configure commands for all services
