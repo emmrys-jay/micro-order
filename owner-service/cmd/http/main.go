@@ -42,6 +42,7 @@ func main() {
 
 	// Set logger
 	l := logger.Get()
+	zap.ReplaceGlobals(l)
 
 	l.Info("Starting the application",
 		zap.String("app", config.App.Name),
