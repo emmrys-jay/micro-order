@@ -46,7 +46,7 @@ func (ur *UserRepository) CreateUser(ctx context.Context, user *domain.User) (*d
 func (ur *UserRepository) GetUserByID(ctx context.Context, id primitive.ObjectID) (*domain.User, domain.CError) {
 	var user domain.User
 
-	err := ur.collection.FindOne(ctx, bson.M{"_id": id, "deleted_at": nil}).Decode(&user)
+	err := ur.collection.FindOne(ctx, bson.M{"_id": id, "deleted_at": bson.M{"$exists": false}}).Decode(&user)
 	if err != nil {
 		if err == mongo.ErrNoDocuments {
 			return nil, domain.ErrDataNotFound
@@ -61,7 +61,7 @@ func (ur *UserRepository) GetUserByID(ctx context.Context, id primitive.ObjectID
 func (ur *UserRepository) GetUserByEmail(ctx context.Context, email string) (*domain.User, domain.CError) {
 	var user domain.User
 
-	err := ur.collection.FindOne(ctx, bson.M{"email": email, "deleted_at": nil}).Decode(&user)
+	err := ur.collection.FindOne(ctx, bson.M{"email": email, "deleted_at": bson.M{"$exists": false}}).Decode(&user)
 	if err != nil {
 		if err == mongo.ErrNoDocuments {
 			return nil, domain.ErrDataNotFound
@@ -76,7 +76,7 @@ func (ur *UserRepository) GetUserByEmail(ctx context.Context, email string) (*do
 func (ur *UserRepository) ListUsers(ctx context.Context) ([]domain.User, domain.CError) {
 	var users []domain.User
 
-	cursor, err := ur.collection.Find(ctx, bson.M{"deleted_at": nil}, options.Find().SetSort(bson.M{"created_at": -1}))
+	cursor, err := ur.collection.Find(ctx, bson.M{"deleted_at": bson.M{"$exists": false}}, options.Find().SetSort(bson.M{"created_at": -1}))
 	if err != nil {
 		return nil, domain.NewInternalCError(err.Error())
 	}
@@ -109,7 +109,7 @@ func (ur *UserRepository) UpdateUser(ctx context.Context, user *domain.User) (*d
 		},
 	}
 
-	result := ur.collection.FindOneAndUpdate(ctx, bson.M{"_id": user.ID, "deleted_at": nil}, update, options.FindOneAndUpdate().SetReturnDocument(options.After))
+	result := ur.collection.FindOneAndUpdate(ctx, bson.M{"_id": user.ID, "deleted_at": bson.M{"$exists": false}}, update, options.FindOneAndUpdate().SetReturnDocument(options.After))
 	if result.Err() != nil {
 		if result.Err() == mongo.ErrNoDocuments {
 			return nil, domain.ErrDataNotFound

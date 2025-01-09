@@ -2,9 +2,9 @@ services:
   mongo:
     image: mongo
     restart: always
-    container_name: owner_mongodb
+    container_name: product_mongodb
     ports:
-      - "27018:27017"
+      - "27017:27017"
     volumes:
       - mongodb_data:/data/db
     environment:
@@ -21,9 +21,9 @@ services:
 
   redis:
     image: redis:7-alpine
-    container_name: owner_redis
+    container_name: product_redis
     ports:
-      - 6380:6379
+      - 6379:6379
     volumes:
       - redis:/data
     healthcheck:

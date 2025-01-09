@@ -1,7 +1,6 @@
 package domain
 
 import (
-	"fmt"
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -18,18 +17,6 @@ const (
 var StringToUserRole = map[string]UserRole{
 	"admin": RAdmin,
 	"user":  RUser,
-}
-
-func (e *UserRole) Scan(src interface{}) error {
-	switch s := src.(type) {
-	case []byte:
-		*e = UserRole(s)
-	case string:
-		*e = UserRole(s)
-	default:
-		return fmt.Errorf("unsupported scan type for UsersRoleEnum: %T", src)
-	}
-	return nil
 }
 
 func (ur UserRole) String() string {
