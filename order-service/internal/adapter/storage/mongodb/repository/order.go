@@ -31,34 +31,59 @@ func NewOrderRepository(db *mongodb.DB) *OrderRepository {
 }
 
 func (or *OrderRepository) CreateOrder(ctx context.Context, order *domain.Order) (*domain.Order, domain.CError) {
-	order.ID = primitive.NewObjectID()
-	order.CreatedAt = time.Now()
-	order.UpdatedAt = time.Now()
+	session, err := or.ordersCol.Database().Client().StartSession()
+	if err != nil {
+		return nil, domain.NewInternalCError("error starting session: " + err.Error())
+	}
+	defer session.EndSession(ctx)
 
 	orderItems := make([]domain.OrderItem, len(order.OrderItems))
 	copy(orderItems, order.OrderItems)
 	order.OrderItems = nil
 
-	// Insert order first
-	_, err := or.ordersCol.InsertOne(ctx, order)
+	err = mongo.WithSession(ctx, session, func(sc mongo.SessionContext) error {
+		if err := session.StartTransaction(); err != nil {
+			return err
+		}
+
+		order.ID = primitive.NewObjectID()
+		order.CreatedAt = time.Now()
+		order.UpdatedAt = time.Now()
+
+		// Insert order first
+		_, err := or.ordersCol.InsertOne(sc, order)
+		if err != nil {
+			session.AbortTransaction(sc)
+			return domain.NewInternalCError("error inserting order: " + err.Error())
+		}
+
+		// Insert order items
+		items := make([]interface{}, len(orderItems))
+		for i := range orderItems {
+			orderItems[i].OrderID = order.ID
+			orderItems[i].ID = primitive.NewObjectID()
+			orderItems[i].CreatedAt = time.Now()
+			items[i] = orderItems[i]
+		}
+
+		_, err = or.itemsCol.InsertMany(sc, items)
+		if err != nil {
+			session.AbortTransaction(sc)
+			return domain.NewInternalCError("error inserting order items: " + err.Error())
+		}
+
+		if err := session.CommitTransaction(sc); err != nil {
+			return domain.NewInternalCError("error committing transaction: " + err.Error())
+		}
+
+		return nil
+	})
+
 	if err != nil {
-		return nil, domain.NewInternalCError("error inserting order: " + err.Error())
+		return nil, domain.NewInternalCError("error creating order: " + err.Error())
 	}
 
-	// Insert order items
-	items := make([]interface{}, len(order.OrderItems))
-	for i := range orderItems {
-		order.OrderItems[i].OrderID = order.ID
-		order.OrderItems[i].ID = primitive.NewObjectID()
-		order.OrderItems[i].CreatedAt = time.Now()
-		items[i] = order.OrderItems[i]
-	}
-
-	_, err = or.itemsCol.InsertMany(ctx, items)
-	if err != nil {
-		return nil, domain.NewInternalCError("error inserting order items: " + err.Error())
-	}
-
+	order.OrderItems = orderItems
 	return order, nil
 }
 
