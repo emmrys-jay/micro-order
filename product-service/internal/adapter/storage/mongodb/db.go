@@ -10,6 +10,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
+	"go.uber.org/zap"
 )
 
 /**
@@ -37,6 +38,8 @@ func dsn(config *config.DatabaseConfiguration) string {
 // New creates a new MongoDB database instance
 func New(ctx context.Context, config *config.DatabaseConfiguration) (*DB, error) {
 	url := dsn(config)
+	zap.L().Info("Connecting to the database", zap.String("url", url))
+
 	clientOptions := options.Client().ApplyURI(url)
 
 	client, err := mongo.Connect(ctx, clientOptions)
@@ -63,4 +66,9 @@ func (db *DB) Close() {
 	if err := db.Client.Disconnect(context.Background()); err != nil {
 		fmt.Printf("Error disconnecting from MongoDB: %v\n", err)
 	}
+}
+
+// Url returns the MongoDB connection string
+func (db *DB) Url() string {
+	return db.url
 }

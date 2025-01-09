@@ -38,7 +38,7 @@ service-down-add: ## Stop services, volumes and networks
 	docker-compose down -v
 
 redis-cli: ## Connect to redis using command line interface
-	docker exec -it owner_redis redis-cli
+	docker exec -it product_redis redis-cli
 
 dev: ## Start development server
 	air
