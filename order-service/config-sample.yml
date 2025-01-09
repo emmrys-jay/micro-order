@@ -1,0 +1,21 @@
+database:
+  protocol: "mongodb"
+  host: "127.0.0.1"
+  port: "27019"
+  name: "order-service"
+  user: "order"
+  password: "password"
+redis:
+  address: "localhost:6381"
+  password: "password"
+server:
+  httpUrl: "127.0.0.1"
+  httpPort: "8082"
+  httpAllowedOrigins: "http://127.0.0.1:3000,http://127.0.0.1:8080"
+app: 
+  name: "order-service"
+  env: "development"
+token: 
+  duration: "1h"
+  secret: ""
+  issuer: "owner-service"

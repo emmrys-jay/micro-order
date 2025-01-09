@@ -1,0 +1,150 @@
+package repository
+
+import (
+	"context"
+	"time"
+
+	"order-service/internal/adapter/config"
+	"order-service/internal/adapter/storage/mongodb"
+	"order-service/internal/core/domain"
+
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/mongo"
+)
+
+/**
+ * OrderRepository implements port.OrderRepository interface
+ * and provides an access to the MongoDB database
+ */
+type OrderRepository struct {
+	ordersCol *mongo.Collection
+	itemsCol  *mongo.Collection
+}
+
+// NewOrderRepository creates a new order repository instance
+func NewOrderRepository(db *mongodb.DB) *OrderRepository {
+	return &OrderRepository{
+		ordersCol: db.Client.Database(config.GetConfig().Database.Name).Collection("orders"),
+		itemsCol:  db.Client.Database(config.GetConfig().Database.Name).Collection("orderItems"),
+	}
+}
+
+func (or *OrderRepository) CreateOrder(ctx context.Context, order *domain.Order) (*domain.Order, domain.CError) {
+	order.ID = primitive.NewObjectID()
+	order.CreatedAt = time.Now()
+	order.UpdatedAt = time.Now()
+
+	orderItems := make([]domain.OrderItem, len(order.OrderItems))
+	copy(orderItems, order.OrderItems)
+	order.OrderItems = nil
+
+	// Insert order first
+	_, err := or.ordersCol.InsertOne(ctx, order)
+	if err != nil {
+		return nil, domain.NewInternalCError("error inserting order: " + err.Error())
+	}
+
+	// Insert order items
+	items := make([]interface{}, len(order.OrderItems))
+	for i := range orderItems {
+		order.OrderItems[i].OrderID = order.ID
+		order.OrderItems[i].ID = primitive.NewObjectID()
+		order.OrderItems[i].CreatedAt = time.Now()
+		items[i] = order.OrderItems[i]
+	}
+
+	_, err = or.itemsCol.InsertMany(ctx, items)
+	if err != nil {
+		return nil, domain.NewInternalCError("error inserting order items: " + err.Error())
+	}
+
+	return order, nil
+}
+
+func (or *OrderRepository) GetOrder(ctx context.Context, id primitive.ObjectID) (*domain.Order, domain.CError) {
+	var order domain.Order
+
+	err := or.ordersCol.FindOne(ctx, bson.M{"_id": id}).Decode(&order)
+	if err != nil {
+		if err == mongo.ErrNoDocuments {
+			return nil, domain.ErrDataNotFound
+		}
+		return nil, domain.NewInternalCError("error finding order: " + err.Error())
+	}
+
+	cursor, err := or.itemsCol.Find(ctx, bson.M{"order_id": id})
+	if err != nil {
+		return nil, domain.NewInternalCError("error finding order items: " + err.Error())
+	}
+	defer cursor.Close(ctx)
+
+	for cursor.Next(ctx) {
+		var item domain.OrderItem
+		if err := cursor.Decode(&item); err != nil {
+			return nil, domain.NewInternalCError("error decoding order item: " + err.Error())
+		}
+		order.OrderItems = append(order.OrderItems, item)
+	}
+
+	if err := cursor.Err(); err != nil {
+		return nil, domain.NewInternalCError("error iterating order items: " + err.Error())
+	}
+
+	return &order, nil
+}
+
+func (or *OrderRepository) ListOrders(ctx context.Context, userId primitive.ObjectID) ([]domain.Order, domain.CError) {
+	pipeline := mongo.Pipeline{
+		{{Key: "$match", Value: bson.M{"user_id": userId}}},
+		{primitive.E{Key: "$lookup", Value: bson.M{
+			"from":         "orderItems",
+			"localField":   "_id",
+			"foreignField": "order_id",
+			"as":           "order_items",
+		}}},
+	}
+
+	cursor, err := or.ordersCol.Aggregate(ctx, pipeline)
+	if err != nil {
+		return nil, domain.NewInternalCError("error aggregating orders: " + err.Error())
+	}
+	defer cursor.Close(ctx)
+
+	var orders = []domain.Order{}
+	for cursor.Next(ctx) {
+		var order domain.Order
+		if err := cursor.Decode(&order); err != nil {
+			return nil, domain.NewInternalCError("error decoding order: " + err.Error())
+		}
+		orders = append(orders, order)
+	}
+
+	if err := cursor.Err(); err != nil {
+		return nil, domain.NewInternalCError("error iterating orders: " + err.Error())
+	}
+
+	return orders, nil
+}
+
+func (or *OrderRepository) UpdateOrder(ctx context.Context, order *domain.Order) (*domain.Order, domain.CError) {
+	order.UpdatedAt = time.Now()
+
+	filter := bson.M{"_id": order.ID}
+	update := bson.M{
+		"$set": bson.M{
+			"status":     order.Status,
+			"updated_at": order.UpdatedAt,
+		},
+	}
+
+	_, err := or.ordersCol.UpdateOne(ctx, filter, update)
+	if err != nil {
+		if err == mongo.ErrNoDocuments {
+			return nil, domain.ErrDataNotFound
+		}
+		return nil, domain.NewInternalCError("error updating order: " + err.Error())
+	}
+
+	return order, nil
+}
