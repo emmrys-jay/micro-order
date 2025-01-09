@@ -31,6 +31,9 @@ type Product struct {
 	Price       float64            `json:"price" bson:"price"`
 	Quantity    int32              `json:"quantity" bson:"quantity"`
 	Status      ProductStatus      `json:"status" bson:"status"`
+	OwnerID     primitive.ObjectID `json:"owner_id" bson:"owner_id"`
+	OwnerName   string             `json:"owner_name" bson:"owner_name"`
+	OwnerPhone  string             `json:"owner_phone" bson:"owner_phone"`
 	CreatedAt   time.Time          `json:"created_at" bson:"created_at"`
 	UpdatedAt   time.Time          `json:"updated_at" bson:"updated_at"`
 }

@@ -37,6 +37,8 @@ func (ps *ProductService) CreateProduct(ctx context.Context, prod *domain.Create
 		Status:      domain.ProductStatusActive,
 	}
 
+	// TODO: fetch owner information from owner service
+
 	prodResponse, cerr := ps.repo.CreateProduct(ctx, &prodToCreate)
 	if cerr != nil {
 		if cerr.Code() == 500 {
