@@ -100,12 +100,14 @@ func (us *UserService) UpdateUser(ctx context.Context, id primitive.ObjectID, re
 		return nil, cerr
 	}
 
-	if req.FirstName == retUser.FirstName && req.LastName == retUser.LastName && req.Role == retUser.Role.String() {
+	if req.FirstName == retUser.FirstName && req.LastName == retUser.LastName &&
+		req.Role == retUser.Role.String() && retUser.Phone == req.Phone {
 		return nil, domain.NewCError(http.StatusBadRequest, "There are no changes to update")
 	}
 
 	retUser.FirstName = req.FirstName
 	retUser.LastName = req.LastName
+	retUser.Phone = req.Phone
 
 	if role, ok := domain.StringToUserRole[req.Role]; ok {
 		retUser.Role = role

@@ -30,6 +30,7 @@ type User struct {
 	LastName  string             `json:"last_name" validate:"required" bson:"last_name"`
 	Email     string             `json:"email" validate:"required" bson:"email"`
 	Password  string             `json:"password,omitempty" validate:"required" bson:"password"`
+	Phone     string             `json:"phone,omitempty" bson:"phone"`
 	Role      UserRole           `json:"role" bson:"role"`
 	IsActive  bool               `json:"is_active" validate:"required" bson:"is_active"`
 	CreatedAt time.Time          `json:"created_at" bson:"created_at"`
@@ -50,6 +51,7 @@ type LoginResponse struct {
 type UpdateUserRequest struct {
 	FirstName string `json:"first_name" validate:"required"`
 	LastName  string `json:"last_name" validate:"required"`
+	Phone     string `json:"phone" validate:"required"`
 	Role      string `json:"-" swaggerignore:"true"`
 }
 
@@ -58,5 +60,6 @@ type CreateUserRequest struct {
 	Password  string   `json:"password" validate:"required"`
 	FirstName string   `json:"first_name" validate:"required"`
 	LastName  string   `json:"last_name" validate:"required"`
+	Phone     string   `json:"phone" validate:"required"`
 	Role      UserRole `json:"-"`
 }
