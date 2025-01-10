@@ -49,12 +49,20 @@ func (ch *ProductHandler) CreateProduct(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
+	ctxInfo := r.Context().Value(authContextKey).(contextInfo)
+	userId, err := primitive.ObjectIDFromHex(ctxInfo.ID)
+	if err != nil {
+		logger.FromCtx(r.Context()).Error("Error parsing user id", zap.String("user_id", ctxInfo.ID), zap.Error(err))
+		handleError(w, domain.ErrInternal)
+		return
+	}
+
 	if err := ch.validate.Struct(&req); err != nil {
 		validationError(w, err)
 		return
 	}
 
-	result, cerr := ch.svc.CreateProduct(r.Context(), &req)
+	result, cerr := ch.svc.CreateProduct(r.Context(), &req, userId)
 	if cerr != nil {
 		handleError(w, cerr)
 		return

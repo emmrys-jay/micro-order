@@ -34,6 +34,7 @@ type Product struct {
 	OwnerID     primitive.ObjectID `json:"owner_id" bson:"owner_id"`
 	OwnerName   string             `json:"owner_name" bson:"owner_name"`
 	OwnerPhone  string             `json:"owner_phone" bson:"owner_phone"`
+	OwnerEmail  string             `json:"owner_email" bson:"owner_email"`
 	CreatedAt   time.Time          `json:"created_at" bson:"created_at"`
 	UpdatedAt   time.Time          `json:"updated_at" bson:"updated_at"`
 }

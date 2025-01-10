@@ -19,3 +19,5 @@ token:
   duration: "1h"
   secret: ""
   issuer: "owner-service"
+discovery:
+  ownerUrl: "127.0.0.1:8091"

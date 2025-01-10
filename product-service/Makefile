@@ -16,7 +16,8 @@ DB_USER := $(shell yq '.database.user' $(CONFIG_FILE))
 DB_PASSWORD := $(shell yq '.database.password' $(CONFIG_FILE))
 
 .PHONY: default install service-up service-down db-docs db-create db-drop db-cli \
-        migrate-up migrate-down redis-cli dev lint build start swag test sqlc-gen
+        migrate-up migrate-down redis-cli dev lint build start swag test sqlc-gen \
+		protoc_gen
 
 default: install ## Getting started
 
@@ -65,3 +66,11 @@ test: ## Run tests
 
 air: ## Start air
 	air
+
+protoc-gen:
+	protoc internal/core/service/user/*.proto \
+                --go_out=internal/core/service/user \
+                --go-grpc_out=internal/core/service/user \
+                --go_opt=paths=source_relative \
+                --go-grpc_opt=paths=source_relative \
+                --proto_path=internal/core/service/user

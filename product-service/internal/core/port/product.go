@@ -27,7 +27,7 @@ type ProductRepository interface {
 // ProductService is an interface for interacting with product-related business logic
 type ProductService interface {
 	// CreateProduct creates a new product
-	CreateProduct(ctx context.Context, prod *domain.CreateProductRequest) (*domain.Product, domain.CError)
+	CreateProduct(ctx context.Context, prod *domain.CreateProductRequest, userID primitive.ObjectID) (*domain.Product, domain.CError)
 	// GetProduct fetches a new product specified by its id
 	GetProduct(ctx context.Context, id primitive.ObjectID) (*domain.Product, domain.CError)
 	// ListProducts returns all products in the system
