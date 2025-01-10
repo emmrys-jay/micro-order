@@ -18,6 +18,8 @@ type ServerConfiguration struct {
 	HttpUrl            string
 	HttpPort           string
 	HttpAllowedOrigins string
+	GrpcUrl            string
+	GrpcPort           string
 }
 
 type AppConfiguration struct {

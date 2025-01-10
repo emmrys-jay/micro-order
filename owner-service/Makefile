@@ -20,7 +20,8 @@ DSN := $(DB_PROTOCOL)://$(DB_USER):$(DB_PASSWORD)@$(DB_HOST):$(DB_PORT)/$(DB_NAM
 ARG ?= 
 
 .PHONY: default install service-up service-down db-docs db-create db-drop db-cli \
-        migrate-up migrate-down redis-cli dev lint build start swag test sqlc-gen
+        migrate-up migrate-down redis-cli dev lint build start swag test sqlc-gen \
+		protoc_gen
 
 default: install ## Getting started
 
@@ -69,3 +70,11 @@ test: ## Run tests
 
 air: ## Start air
 	air
+
+protoc-gen:
+	protoc internal/core/service/user/*.proto \
+                --go_out=internal/core/service/user \
+                --go-grpc_out=internal/core/service/user \
+                --go_opt=paths=source_relative \
+                --go-grpc_opt=paths=source_relative \
+                --proto_path=internal/core/service/user

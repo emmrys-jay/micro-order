@@ -48,7 +48,7 @@ func (as *AuthService) Login(ctx context.Context, req *domain.LoginRequest) (*do
 		return nil, domain.ErrInvalidCredentials
 	}
 
-	accessToken, err := as.ts.CreateToken(user.ID.String(), req.Email, user.Role.String())
+	accessToken, err := as.ts.CreateToken(user.ID.Hex(), req.Email, user.Role.String())
 	if err != nil {
 
 		logger.FromCtx(ctx).Error("Error creating token", zap.Error(cerr))
