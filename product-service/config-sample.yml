@@ -1,12 +1,12 @@
 database:
   protocol: "mongodb"
   host: "127.0.0.1"
-  port: "27017"
+  port: "27019"
   name: "product-service"
   user: "product"
   password: "password"
 redis:
-  address: "localhost:6379"
+  address: "localhost:6381"
   password: "password"
 server:
   httpUrl: "127.0.0.1"

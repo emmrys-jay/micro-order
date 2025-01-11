@@ -32,6 +32,9 @@ service-build: ## Rebuild image and containers
 service-up: ## Start docker services
 	DB_PASSWORD=$(DB_PASSWORD) DB_NAME=$(DB_NAME) DB_USER=$(DB_USER) docker-compose up -d
 
+service-up-v: ## Start docker services
+	DB_PASSWORD=$(DB_PASSWORD) DB_NAME=$(DB_NAME) DB_USER=$(DB_USER) docker-compose up
+
 service-down: ## Stop services
 	docker-compose down
 
