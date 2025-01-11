@@ -12,6 +12,8 @@ server:
   httpUrl: "127.0.0.1"
   httpPort: "8080"
   httpAllowedOrigins: "http://127.0.0.1:3000,http://127.0.0.1:8080"
+  grpcUrl: "127.0.0.1"
+  grpcPort: "8090"
 app: 
   name: "product-service"
   env: "development"

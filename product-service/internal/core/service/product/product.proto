@@ -1,0 +1,42 @@
+syntax = "proto3";
+package product;
+
+option go_package = "product-service/internal/core/service/product";
+
+service Product {
+    rpc Get(ProductRequest) returns (ProductResponse) {}
+    rpc GetMany(ProductsRequest) returns (ProductsResponse) {}
+}
+
+enum ProductStatus {
+    PRODUCT_STATUS_ACTIVE = 0;
+    PRODUCT_STATUS_INACTIVE = 1;
+    PRODUCT_STATUS_OUT_OF_STOCK = 2;
+}
+
+message ProductResponse {
+    string id = 1;
+    string name = 2;
+    string description = 3;
+    double price = 4;
+    int32 quantity = 5;
+    ProductStatus status = 6;
+    string owner_id = 7;
+    string owner_name = 8;
+    string owner_phone = 9;
+    string owner_email = 10;
+    string created_at = 11;
+    string updated_at = 12;
+}
+
+message ProductRequest { 
+    string product_id = 1;
+}
+
+message ProductsRequest {
+    repeated string product_ids = 1;
+}
+
+message ProductsResponse {
+    repeated ProductResponse products = 1;
+}

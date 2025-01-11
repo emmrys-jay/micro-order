@@ -4,11 +4,9 @@ import (
 	"context"
 	"net/http"
 
-	"product-service/internal/adapter/config"
 	"product-service/internal/adapter/logger"
 	"product-service/internal/core/domain"
 	"product-service/internal/core/port"
-	"product-service/internal/core/service/user"
 
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.uber.org/zap"
@@ -31,6 +29,7 @@ func NewProductService(repo port.ProductRepository, cache port.CacheRepository) 
 }
 
 func (ps *ProductService) CreateProduct(ctx context.Context, prod *domain.CreateProductRequest, userID primitive.ObjectID) (*domain.Product, domain.CError) {
+	log := logger.FromCtx(ctx)
 	prodToCreate := domain.Product{
 		Name:        prod.Name,
 		Description: prod.Description,
@@ -39,24 +38,11 @@ func (ps *ProductService) CreateProduct(ctx context.Context, prod *domain.Create
 		Status:      domain.ProductStatusActive,
 	}
 
-	log := logger.FromCtx(ctx)
-	grpcConn, grpcClient, err := NewUserClient(&config.GetConfig().Discovery)
-	if err != nil {
-		log.Error("Error creating user client", zap.Error(err))
-		return nil, domain.ErrInternal
-	}
-	defer grpcConn.Close()
-
-	log.Info("Created new grpc user client")
-	log.Info("Making request to fetch user", zap.String("user_id", userID.Hex()))
-
-	retUser, err := grpcClient.Get(context.Background(), &user.UserRequest{UserId: userID.Hex()})
+	retUser, err := GetUser(context.Background(), userID)
 	if err != nil {
 		log.Error("Error fetching user", zap.Error(err))
 		return nil, domain.ErrInternal
 	}
-
-	log.Info("Successfully fetched user")
 
 	prodToCreate.OwnerID, _ = primitive.ObjectIDFromHex(retUser.Id)
 	prodToCreate.OwnerPhone = retUser.Phone

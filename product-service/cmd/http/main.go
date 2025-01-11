@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"net"
 	"net/http"
 	"os"
 
@@ -18,6 +19,7 @@ import (
 
 	"github.com/go-playground/validator/v10"
 	"go.uber.org/zap"
+	"google.golang.org/grpc"
 )
 
 // @title						product
@@ -95,6 +97,16 @@ func main() {
 		l.Error("Error initializing router ", zap.Error(err))
 		os.Exit(1)
 	}
+
+	// Init GRPC server
+	grpcListAddr := fmt.Sprintf("%s:%s", config.Server.GrpcUrl, config.Server.GrpcPort)
+	list, err := net.Listen("tcp", grpcListAddr)
+	l.Info("Starting the GRPC server", zap.String("listen_address", list.Addr().String()))
+
+	server, err := service.NewGRPCServer(&service.Config{}, productRepo, grpc.EmptyServerOption{})
+	go func() {
+		l.Error("Error starting grpc server", zap.Error(server.Serve(list)))
+	}()
 
 	// Start server
 	listenAddr := fmt.Sprintf("%s:%s", config.Server.HttpUrl, config.Server.HttpPort)

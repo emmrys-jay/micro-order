@@ -67,10 +67,18 @@ test: ## Run tests
 air: ## Start air
 	air
 
-protoc-gen:
+protoc-gen-user: ## Generate protobuf for user service
 	protoc internal/core/service/user/*.proto \
                 --go_out=internal/core/service/user \
                 --go-grpc_out=internal/core/service/user \
                 --go_opt=paths=source_relative \
                 --go-grpc_opt=paths=source_relative \
                 --proto_path=internal/core/service/user
+
+protoc-gen-product: ## Generate protobuf for product service
+	protoc internal/core/service/product/*.proto \
+                --go_out=internal/core/service/product \
+                --go-grpc_out=internal/core/service/product \
+                --go_opt=paths=source_relative \
+                --go-grpc_opt=paths=source_relative \
+                --proto_path=internal/core/service/product
