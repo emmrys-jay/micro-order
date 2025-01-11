@@ -5,6 +5,7 @@ database:
   name: "order-service"
   user: "order"
   password: "password"
+  url: "mongodb://127.0.0.1:27017/?replicaSet=rs0"
 redis:
   address: "localhost:6381"
   password: "password"

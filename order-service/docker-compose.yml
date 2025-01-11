@@ -3,27 +3,25 @@ services:
     image: mongo
     restart: always
     container_name: order_mongodb
+    command: [ "--replSet", "rs0", "--bind_ip_all", "--port", "27017" ]
     ports:
-      - "27019:27017"
-    volumes:
-      - mongodb_data:/data/db
-    environment:
-      MONGO_INITDB_ROOT_USERNAME: ${DB_USER}
-      MONGO_INITDB_ROOT_PASSWORD: ${DB_PASSWORD}
-      MONGO_INITDB_DATABASE: ${DB_NAME}
-    command: mongod --auth # Explicitly enable authentication
+      - 27017:27017
     healthcheck:
-      test: echo 'db.runCommand("ping").ok' | mongosh localhost:27017/test --quiet
-      interval: 10s
-      timeout: 10s
-      retries: 5
-      start_period: 40s
+      test: mongosh --eval "try { rs.status() } catch (err) { rs.initiate({_id:'rs0',members:[{_id:0,host:'localhost:27017'}]}) }"
+      interval: 5s
+      timeout: 30s
+      start_period: 0s
+      start_interval: 1s
+      retries: 30
+    volumes:
+      - "mongodb_data:/data/db"
+      - "mongodb_config:/data/configdb"
 
   redis:
     image: redis:7-alpine
     container_name: order_redis
     ports:
-      - 6381:6379
+      - 6379:6379
     volumes:
       - redis:/data
     healthcheck:
@@ -34,6 +32,8 @@ services:
 
 volumes:
   mongodb_data:
+    driver: local
+  mongodb_config:
     driver: local
   redis:
     driver: local

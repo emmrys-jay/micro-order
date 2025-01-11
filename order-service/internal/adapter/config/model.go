@@ -12,6 +12,7 @@ type DatabaseConfiguration struct {
 	User     string
 	Password string
 	Name     string
+	Url      string // override the other params
 }
 
 type ServerConfiguration struct {

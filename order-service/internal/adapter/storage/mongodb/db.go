@@ -10,6 +10,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
+	"go.mongodb.org/mongo-driver/mongo/writeconcern"
 	"go.uber.org/zap"
 )
 
@@ -23,6 +24,10 @@ type DB struct {
 
 // dsn constructs the MongoDB connection string
 func dsn(config *config.DatabaseConfiguration) string {
+	if config.Url != "" {
+		return config.Url
+	}
+
 	url := fmt.Sprintf("%s://%s:%s@%s:%s/%s?authSource=admin",
 		config.Protocol,
 		config.User,
@@ -35,24 +40,27 @@ func dsn(config *config.DatabaseConfiguration) string {
 	return url
 }
 
-// New creates a new MongoDB database instance
 func New(ctx context.Context, config *config.DatabaseConfiguration) (*DB, error) {
 	url := dsn(config)
 	zap.L().Info("Connecting to the database", zap.String("url", url))
 
-	clientOptions := options.Client().ApplyURI(url)
+	clientOptions := options.Client().
+		ApplyURI(url).
+		SetWriteConcern(writeconcern.Majority()). // Add write concern
+		SetReadPreference(readpref.Primary())     // Explicitly set read preference
 
 	client, err := mongo.Connect(ctx, clientOptions)
 	if err != nil {
 		return nil, err
 	}
 
+	// Use a separate context for ping
 	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
 
-	err = client.Ping(ctx, readpref.Primary())
+	err = client.Ping(ctx, nil) // Use pingCtx instead of ctx
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to ping database: %w", err)
 	}
 
 	return &DB{
