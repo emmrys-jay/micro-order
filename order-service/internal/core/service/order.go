@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"fmt"
 
 	"order-service/internal/adapter/logger"
 	"order-service/internal/core/domain"
@@ -15,103 +16,90 @@ import (
  * OrderService implements port.OrderService interface
  */
 type OrderService struct {
-	repo port.OrderRepository
-	// userRepo    port.UserRepository
-	// productRepo port.ProductRepository
+	repo  port.OrderRepository
 	cache port.CacheRepository
 }
 
 // NewOrderService creates a new order service instance
 func NewOrderService(
 	repo port.OrderRepository,
-	// userRepo port.UserRepository,
-	// productRepo port.ProductRepository,
 	cache port.CacheRepository,
 ) *OrderService {
 	return &OrderService{
 		repo,
-		// userRepo,
-		// productRepo,
 		cache,
 	}
 }
 
 func (os *OrderService) PlaceOrder(ctx context.Context, userId primitive.ObjectID, req *domain.CreateOrderRequest) (*domain.Order, domain.CError) {
-	// _, cerr := os.userRepo.GetUserByID(ctx, userId)
-	// if cerr != nil {
-	// 	if cerr.Code() != 500 {
-	// 		return nil, domain.NewCError(cerr.Code(), "error fetching user: "+cerr.Error())
-	// 	}
+	log := logger.FromCtx(ctx)
+	_, err := GetUser(ctx, userId)
+	if err != nil {
+		log.Error("Error fetching user", zap.Error(err))
+		return nil, domain.ErrInternal
+	}
 
-	// 	logger.FromCtx(ctx).Error("error fetching user to place order", zap.Error(cerr))
-	// 	return nil, domain.ErrInternal
-	// }
+	var productIDMap = make(map[string]int)
+	validProductIDs := make([]string, 0)
+	for _, v := range req.Products {
+		if _, err := primitive.ObjectIDFromHex(v.ProductID); err == nil {
+			validProductIDs = append(validProductIDs, v.ProductID)
+			productIDMap[v.ProductID] = v.Quantity
+		}
+	}
 
-	// var productIDMap = make(map[primitive.ObjectID]int)
-	// validProductIDs := make([]primitive.ObjectID, 0)
-	// for _, v := range req.Products {
-	// 	if id, err := uuid.Parse(v.ProductID); err == nil {
-	// 		validProductIDs = append(validProductIDs, id)
-	// 		productIDMap[id] = v.Quantity
-	// 	}
-	// }
+	products, err := GetProductsByIDs(ctx, validProductIDs)
+	if err != nil {
+		log.Error("Error fetching products", zap.Error(err))
+		return nil, domain.ErrInternal
+	}
 
-	// products, cerr := os.productRepo.GetProductsByIDs(ctx, validProductIDs)
-	// if cerr != nil {
-	// 	if cerr.Code() == 500 {
+	if len(products) == 0 {
+		return nil, domain.NewBadRequestCError("none of the products specified was found")
+	}
 
-	// 		logger.FromCtx(ctx).Error("Error fetching products", zap.Error(cerr))
-	// 		return nil, domain.ErrInternal
-	// 	}
-	// 	return nil, cerr
-	// }
+	// Check for the integrity of order quantity with quantity in stock
+	// Calculate total order amount
+	// Populate order items
+	var totalAmount float64
+	var orderItems = make([]domain.OrderItem, 0)
 
-	// if len(products) == 0 {
-	// 	return nil, domain.NewBadRequestCError("none of the products specified was found")
-	// }
+	for _, v := range products {
+		quantityOrdered := productIDMap[v.Id]
 
-	// // Check for the integrity of order quantity with quantity in stock
-	// // Calculate total order amount
-	// // Populate order items
-	// var totalAmount float64
-	// var orderItems = make([]domain.OrderItem, 0)
+		if int(v.Quantity)-quantityOrdered < 0 {
+			errMsg := fmt.Sprintf("The quantity specified for '%s' is more than the quantity in stock: %v (specified) for %v (in stock)",
+				v.Name, productIDMap[v.Id], v.Quantity)
+			return nil, domain.NewBadRequestCError(errMsg)
+		}
 
-	// for _, v := range products {
-	// 	quantityOrdered := productIDMap[v.ID]
+		totalAmount += (v.Price * float64(quantityOrdered))
+		productId, _ := primitive.ObjectIDFromHex(v.Id)
+		orderItems = append(orderItems, domain.OrderItem{
+			ProductID:   productId,
+			ProductName: v.Name,
+			Quantity:    int32(quantityOrdered),
+			UnitPrice:   v.Price,
+		})
+	}
 
-	// 	if int(v.Quantity)-quantityOrdered < 0 {
-	// 		errMsg := fmt.Sprintf("The quantity specified for '%s' is more than the quantity in stock: %v (specified) for %v (in stock)",
-	// 			v.Name, productIDMap[v.ID], v.Quantity)
-	// 		return nil, domain.NewBadRequestCError(errMsg)
-	// 	}
+	order := domain.Order{
+		UserID:      userId,
+		TotalAmount: totalAmount,
+		OrderItems:  orderItems,
+		Status:      domain.OrderStatusPending,
+	}
 
-	// 	totalAmount += (v.Price * float64(quantityOrdered))
+	retOrder, cerr := os.repo.CreateOrder(ctx, &order)
+	if cerr != nil {
+		if cerr.Code() == 500 {
+			logger.FromCtx(ctx).Error("Error placing orders", zap.Error(cerr))
+			return nil, domain.ErrInternal
+		}
+		return nil, cerr
+	}
 
-	// 	orderItems = append(orderItems, domain.OrderItem{
-	// 		ProductID:   v.ID,
-	// 		ProductName: v.Name,
-	// 		Quantity:    int32(quantityOrdered),
-	// 		UnitPrice:   v.Price,
-	// 	})
-	// }
-
-	// order := domain.Order{
-	// 	UserID:      userId,
-	// 	TotalAmount: totalAmount,
-	// 	OrderItems:  orderItems,
-	// 	Status:      domain.OrderStatusPending,
-	// }
-
-	// retOrder, cerr := os.repo.CreateOrder(ctx, &order)
-	// if cerr != nil {
-	// 	if cerr.Code() == 500 {
-	// 		logger.FromCtx(ctx).Error("Error placing orders", zap.Error(cerr))
-	// 		return nil, domain.ErrInternal
-	// 	}
-	// 	return nil, cerr
-	// }
-
-	return &domain.Order{}, nil
+	return retOrder, nil
 }
 
 func (os *OrderService) GetOrder(ctx context.Context, id primitive.ObjectID) (*domain.Order, domain.CError) {

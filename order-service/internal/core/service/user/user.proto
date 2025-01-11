@@ -1,0 +1,33 @@
+syntax = "proto3";
+package user;
+
+option go_package = "product-service/internal/core/service/user";
+
+service User {
+    rpc Get(UserRequest) returns (UserResponse) {}
+}
+
+// User represents a row in the "users" table
+message UserResponse {
+    string id = 1;
+    string first_name = 2;
+    string last_name = 3;
+    string email = 4;
+    string password = 5;
+    string phone = 6;
+    UserRole role = 7;
+    bool is_active = 8;
+    string created_at = 9;
+    string updated_at = 10;
+    string deleted_at = 11;
+}
+
+enum UserRole {
+    USER_ROLE_UNSPECIFIED = 0;
+    USER_ROLE_ADMIN = 1;
+    USER_ROLE_USER = 2;
+}
+
+message UserRequest { 
+    string user_id = 1;
+}

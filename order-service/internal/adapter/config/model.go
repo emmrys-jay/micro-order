@@ -31,10 +31,16 @@ type TokenConfiguration struct {
 	Issuer   string
 }
 
+type DiscoveryConfiguration struct {
+	OwnerUrl   string
+	ProductUrl string
+}
+
 type Configuration struct {
-	App      AppConfiguration
-	Server   ServerConfiguration
-	Database DatabaseConfiguration
-	Redis    RedisConfiguration
-	Token    TokenConfiguration
+	App       AppConfiguration
+	Server    ServerConfiguration
+	Database  DatabaseConfiguration
+	Redis     RedisConfiguration
+	Token     TokenConfiguration
+	Discovery DiscoveryConfiguration
 }
