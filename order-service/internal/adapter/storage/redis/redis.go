@@ -39,11 +39,36 @@ func (r *Redis) Set(ctx context.Context, key string, value []byte, ttl time.Dura
 	return r.client.Set(ctx, key, value, ttl).Err()
 }
 
+// MSet stores the values in the redis database
+func (r *Redis) MSet(ctx context.Context, values map[string][]byte, ttl time.Duration) error {
+	var pairs = make(map[string]any)
+	for k, v := range values {
+		pairs[k] = v
+	}
+	return r.client.MSet(ctx, pairs).Err()
+}
+
 // Get retrieves the value from the redis database
 func (r *Redis) Get(ctx context.Context, key string) ([]byte, error) {
 	res, err := r.client.Get(ctx, key).Result()
 	bytes := []byte(res)
 	return bytes, err
+}
+
+// MGet retrieves the values from the redis database
+func (r *Redis) MGet(ctx context.Context, keys []string) ([][]byte, error) {
+	res, err := r.client.MGet(ctx, keys...).Result()
+	var results = make([][]byte, 0, len(res))
+	for _, v := range res {
+		r, ok := v.(string)
+		if ok {
+			results = append(results, []byte(r))
+			continue
+		}
+
+		results = append(results, nil)
+	}
+	return results, err
 }
 
 // Delete removes the value from the redis database

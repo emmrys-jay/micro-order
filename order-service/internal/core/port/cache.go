@@ -9,8 +9,12 @@ import (
 type CacheRepository interface {
 	// Set stores the value in the cache
 	Set(ctx context.Context, key string, value []byte, ttl time.Duration) error
+	// MSet stores multiple values in the cache
+	MSet(ctx context.Context, values map[string][]byte, ttl time.Duration) error
 	// Get retrieves the value from the cache
 	Get(ctx context.Context, key string) ([]byte, error)
+	// MGet retrieves multiple values from the cache
+	MGet(ctx context.Context, keys []string) ([][]byte, error)
 	// Delete removes the value from the cache
 	Delete(ctx context.Context, key string) error
 	// DeleteByPrefix removes the value from the cache with the given prefix

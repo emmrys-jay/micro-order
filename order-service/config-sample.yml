@@ -9,6 +9,7 @@ database:
 redis:
   address: "localhost:6381"
   password: "password"
+  ttl: "24h"
 server:
   httpUrl: "127.0.0.1"
   httpPort: "8082"

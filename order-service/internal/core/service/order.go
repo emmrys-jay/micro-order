@@ -3,7 +3,9 @@ package service
 import (
 	"context"
 	"fmt"
+	"time"
 
+	"order-service/internal/adapter/config"
 	"order-service/internal/adapter/logger"
 	"order-service/internal/core/domain"
 	"order-service/internal/core/port"
@@ -16,8 +18,9 @@ import (
  * OrderService implements port.OrderService interface
  */
 type OrderService struct {
-	repo  port.OrderRepository
-	cache port.CacheRepository
+	repo     port.OrderRepository
+	cache    port.CacheRepository
+	cacheTtl time.Duration
 }
 
 // NewOrderService creates a new order service instance
@@ -25,15 +28,23 @@ func NewOrderService(
 	repo port.OrderRepository,
 	cache port.CacheRepository,
 ) *OrderService {
+
+	cacheTtl, err := time.ParseDuration(config.GetConfig().Redis.Ttl)
+	if err != nil {
+		zap.L().Info("Error parsing cache ttl, defaulting to 24h", zap.Error(err))
+		cacheTtl = 24 * time.Hour
+	}
+
 	return &OrderService{
 		repo,
 		cache,
+		cacheTtl,
 	}
 }
 
 func (os *OrderService) PlaceOrder(ctx context.Context, userId primitive.ObjectID, req *domain.CreateOrderRequest) (*domain.Order, domain.CError) {
 	log := logger.FromCtx(ctx)
-	_, err := GetUser(ctx, userId)
+	_, err := os.GetUser(ctx, userId)
 	if err != nil {
 		log.Error("Error fetching user", zap.Error(err))
 		return nil, domain.ErrInternal
@@ -48,7 +59,7 @@ func (os *OrderService) PlaceOrder(ctx context.Context, userId primitive.ObjectI
 		}
 	}
 
-	products, err := GetProductsByIDs(ctx, validProductIDs)
+	products, err := os.GetProductsByIDs(ctx, validProductIDs)
 	if err != nil {
 		log.Error("Error fetching products", zap.Error(err))
 		return nil, domain.ErrInternal
