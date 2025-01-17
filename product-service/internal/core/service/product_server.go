@@ -141,7 +141,7 @@ func (s *grpcServer) GetMany(ctx context.Context, req *product.ProductsRequest) 
 			OwnerPhone:  prod.OwnerPhone,
 			OwnerEmail:  prod.OwnerEmail,
 			CreatedAt:   prod.CreatedAt.String(),
-			UpdatedAt:   prod.CreatedAt.String(),
+			UpdatedAt:   prod.UpdatedAt.String(),
 		}
 
 		if status, err := product.StringToProductStatus(prod.Status.String()); err == nil {

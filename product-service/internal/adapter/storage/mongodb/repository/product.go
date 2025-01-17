@@ -159,3 +159,27 @@ func (ur *ProductRepository) GetProductsByIDs(ctx context.Context, productIds []
 
 	return prods, nil
 }
+
+// UpdateProductOwner updates a product by ID in the database
+func (ur *ProductRepository) UpdateProductOwner(ctx context.Context, owner *domain.UserUpdateForQueue) (int64, domain.CError) {
+	oId, err := primitive.ObjectIDFromHex(owner.Id)
+	if err != nil {
+		return -1, domain.NewBadRequestCError("Error parsing owner id received: " + err.Error())
+	}
+
+	filter := bson.M{"owner_id": oId, "deleted_at": bson.M{"$exists": false}}
+	update := bson.M{
+		"$set": bson.M{
+			"owner_name":  owner.FirstName + " " + owner.LastName,
+			"owner_phone": owner.Phone,
+			"updated_at":  owner.UpdatedAt,
+		},
+	}
+
+	res, err := ur.collection.UpdateMany(ctx, filter, update)
+	if err != nil {
+		return -1, domain.NewInternalCError(err.Error())
+	}
+
+	return res.MatchedCount, nil
+}

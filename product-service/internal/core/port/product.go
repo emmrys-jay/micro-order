@@ -22,6 +22,8 @@ type ProductRepository interface {
 	DeleteProduct(ctx context.Context, id primitive.ObjectID) domain.CError
 	// GetProductsByIDs fetches all products that correspond to a list of product ids
 	GetProductsByIDs(ctx context.Context, productIds []primitive.ObjectID) ([]domain.Product, domain.CError)
+	// UpdateProductOwner updates the owner of a product stored in the database. This is currently called from the rabbitmq consumer
+	UpdateProductOwner(ctx context.Context, owner *domain.UserUpdateForQueue) (int64, domain.CError)
 }
 
 // ProductService is an interface for interacting with product-related business logic

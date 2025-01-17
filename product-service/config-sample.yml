@@ -23,3 +23,7 @@ token:
   issuer: "owner-service"
 discovery:
   ownerUrl: "127.0.0.1:8091"
+rabbitmq:
+  user: "admin"
+  password: "password"
+  host: "localhost:5672"

@@ -9,6 +9,7 @@ import (
 
 	_ "product-service/docs"
 	"product-service/internal/adapter/auth/jwt"
+	"product-service/internal/adapter/broker/rabbitmq"
 	"product-service/internal/adapter/config"
 	httpLib "product-service/internal/adapter/handler/http"
 	"product-service/internal/adapter/logger"
@@ -24,7 +25,7 @@ import (
 
 // @title						product
 // @version					1.0
-// @description				A personal finance application
+// @description				Product Service
 //
 // @contact.name				Emmanuel Jonathan
 // @contact.url				https://github.com/emmrys-jay
@@ -74,6 +75,15 @@ func main() {
 	// Init token service
 	tokenService := jwt.New(&config.Token)
 
+	// Message Queue Producer
+	producer, err := rabbitmq.New(ctx, &config.Rabbitmq)
+	if err != nil {
+		l.Error("Error initializing Message Queue producer", zap.Error(err))
+		os.Exit(1)
+	}
+
+	l.Info("Successfully connected to the message queue and created producer")
+
 	// Dependency injection
 	// Ping
 	pingRepo := repository.NewPingRepository(db)
@@ -82,7 +92,7 @@ func main() {
 
 	// Product
 	productRepo := repository.NewProductRepository(db)
-	productService := service.NewProductService(productRepo, cache)
+	productService := service.NewProductService(productRepo, cache, producer)
 	productHandler := httpLib.NewProductHandler(productService, validator.New())
 
 	// Init router
@@ -97,6 +107,20 @@ func main() {
 		l.Error("Error initializing router ", zap.Error(err))
 		os.Exit(1)
 	}
+
+	// Message Queue Consumer 1
+	consumer1, err := rabbitmq.New(ctx, &config.Rabbitmq)
+	if err != nil {
+		l.Error("Error initializing Message Queue consumer", zap.Error(err))
+		os.Exit(1)
+	}
+
+	l.Info("Successfully connected to the message queue and created consumer")
+
+	// Start consumer
+	queue := "user-updates"
+	l.Info("Starting consumer on", zap.String("queue", queue))
+	go consumer1.Consume(ctx, queue, productService.UpdateProductsFromQueue)
 
 	// Init GRPC server
 	grpcListAddr := fmt.Sprintf("%s:%s", config.Server.GrpcUrl, config.Server.GrpcPort)

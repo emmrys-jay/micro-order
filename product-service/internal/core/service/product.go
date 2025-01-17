@@ -2,11 +2,14 @@ package service
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 
 	"product-service/internal/adapter/logger"
 	"product-service/internal/core/domain"
 	"product-service/internal/core/port"
+	"product-service/internal/core/service/product"
+	"product-service/internal/core/util"
 
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.uber.org/zap"
@@ -16,15 +19,17 @@ import (
  * ProductService implements port.ProductService interface
  */
 type ProductService struct {
-	repo  port.ProductRepository
-	cache port.CacheRepository
+	repo     port.ProductRepository
+	cache    port.CacheRepository
+	producer port.MessageQueueRepository
 }
 
 // NewProductService creates a new product service instance
-func NewProductService(repo port.ProductRepository, cache port.CacheRepository) *ProductService {
+func NewProductService(repo port.ProductRepository, cache port.CacheRepository, producer port.MessageQueueRepository) *ProductService {
 	return &ProductService{
 		repo,
 		cache,
+		producer,
 	}
 }
 
@@ -99,6 +104,11 @@ func (ps *ProductService) UpdateProduct(ctx context.Context, id primitive.Object
 		return nil, domain.NewCError(http.StatusBadRequest, "There are no changes to update")
 	}
 
+	var nameIsUpdated bool
+	if req.Name != retProd.Name {
+		nameIsUpdated = true
+	}
+
 	retProd.Name = req.Name
 	retProd.Description = req.Description
 	retProd.Price = req.Price
@@ -108,7 +118,7 @@ func (ps *ProductService) UpdateProduct(ctx context.Context, id primitive.Object
 		retProd.Status = status
 	}
 
-	userResponse, cerr := ps.repo.UpdateProduct(ctx, retProd)
+	productResponse, cerr := ps.repo.UpdateProduct(ctx, retProd)
 	if cerr != nil {
 		if cerr.Code() == 500 {
 			log.Error("Error updating product", zap.Error(cerr))
@@ -117,7 +127,50 @@ func (ps *ProductService) UpdateProduct(ctx context.Context, id primitive.Object
 		return nil, cerr
 	}
 
-	return userResponse, nil
+	// Start the process of publishing update to queue
+	// Error in this process does not affect the request
+	productToProduce := product.ProductUpdateForQueue{
+		Id:            productResponse.ID.Hex(),
+		Name:          productResponse.Name,
+		Description:   productResponse.Description,
+		Price:         productResponse.Price,
+		Quantity:      productResponse.Quantity,
+		OwnerId:       productResponse.OwnerID.Hex(),
+		OwnerEmail:    productResponse.OwnerEmail,
+		OwnerName:     productResponse.OwnerName,
+		OwnerPhone:    productResponse.OwnerPhone,
+		CreatedAt:     productResponse.CreatedAt.String(),
+		UpdatedAt:     productResponse.UpdatedAt.String(),
+		NameIsUpdated: nameIsUpdated,
+	}
+
+	status, _ := product.StringToProductStatus(productResponse.Status.String())
+	productToProduce.Status = status
+
+	sProd, err := util.Serialize(productToProduce)
+	if err != nil {
+		log.Error("Error serializing product to publish to queue", zap.Error(cerr))
+		return productResponse, nil
+	}
+
+	queue := "product-updates"
+	log.Info("Publishing the updated product to message queue", zap.String("queue", queue))
+	correlationId := ctx.Value(domain.CorrelationIDCtxKey)
+
+	headers := map[string]any{
+		"name_is_updated":                  nameIsUpdated,
+		string(domain.CorrelationIDCtxKey): correlationId,
+	}
+
+	err = ps.producer.Publish(ctx, queue, sProd, headers)
+	if err != nil {
+		log.Error("Could not publish product update to the queue", zap.Error(err))
+		return productResponse, nil
+	}
+
+	log.Info("Successfully published message about update to queue")
+
+	return productResponse, nil
 }
 
 func (ps *ProductService) DeleteProduct(ctx context.Context, id primitive.ObjectID) domain.CError {
@@ -131,5 +184,25 @@ func (ps *ProductService) DeleteProduct(ctx context.Context, id primitive.Object
 		return cerr
 	}
 
+	return nil
+}
+
+func (ps *ProductService) UpdateProductsFromQueue(log *zap.Logger, msg []byte) error {
+	log.Info("Received a new message", zap.String("update", string(msg)))
+
+	var update domain.UserUpdateForQueue
+	err := util.Deserialize(msg, &update)
+	if err != nil {
+		log.Error("Could not deserialize message for updating product owner", zap.Error(err))
+		return err
+	}
+
+	updatedProducts, err := ps.repo.UpdateProductOwner(context.Background(), &update)
+	if err != nil {
+		log.Error("Could not update products owner", zap.Error(err))
+		return err
+	}
+
+	log.Info(fmt.Sprintf("Successfully updated %v product(s)", updatedProducts))
 	return nil
 }
