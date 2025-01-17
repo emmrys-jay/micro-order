@@ -19,21 +19,6 @@ services:
       retries: 5
       start_period: 40s
 
-  redis:
-    image: redis:7-alpine
-    container_name: owner_redis
-    ports:
-      - 6380:6379
-    volumes:
-      - redis:/data
-    healthcheck:
-      test: [ "CMD", "redis-cli", "ping" ]
-      interval: 10s
-      timeout: 5s
-      retries: 3
-
 volumes:
   mongodb_data:
-    driver: local
-  redis:
     driver: local
