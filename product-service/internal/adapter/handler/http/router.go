@@ -69,11 +69,12 @@ func NewRouter(
 		// Product
 		r.Route("/product", func(r chi.Router) {
 			r.Post("/", adminMiddleware(http.HandlerFunc(productHandler.CreateProduct), token, logger))
-			r.Get("/{id}", adminMiddleware(http.HandlerFunc(productHandler.GetProduct), token, logger))
 			r.Patch("/{id}", adminMiddleware(http.HandlerFunc(productHandler.UpdateProduct), token, logger))
 			r.Delete("/{id}", adminMiddleware(http.HandlerFunc(productHandler.DeleteProduct), token, logger))
+
+			r.Get("/{id}", authMiddleware(http.HandlerFunc(productHandler.GetProduct), token, logger))
 		})
-		r.Get("/products", productHandler.ListProducts)
+		r.Get("/products", authMiddleware(http.HandlerFunc(productHandler.ListProducts), token, logger))
 	})
 
 	return &Router{
