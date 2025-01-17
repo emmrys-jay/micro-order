@@ -40,14 +40,14 @@ func authMiddleware(next http.Handler, token port.TokenService, logger *zap.Logg
 		fields := strings.Fields(tokenString)
 		isValid := len(fields) == 2
 		if !isValid {
-			handleError(w, domain.ErrInvalidAuthorizationType)
+			handleError(w, domain.ErrInvalidAuthorizationHeader)
 			return
 		}
 
 		claims, err := token.VerifyToken(fields[1])
 		if err != nil {
 			logger.Error("error verifying token", zap.Error(err))
-			handleError(w, domain.ErrInvalidAuthorizationHeader)
+			handleError(w, err)
 			return
 		}
 
@@ -124,32 +124,27 @@ func adminMiddleware(next http.Handler, token port.TokenService, logger *zap.Log
 		fields := strings.Fields(tokenString)
 		isValid := len(fields) == 2
 		if !isValid {
-			handleError(w, domain.ErrInvalidAuthorizationType)
+			handleError(w, domain.ErrInvalidAuthorizationHeader)
 			return
 		}
 
 		claims, err := token.VerifyToken(fields[1])
 		if err != nil {
-			if err.Error() == domain.ErrExpiredToken.Error() {
-				handleError(w, domain.ErrExpiredToken)
-				return
-			}
-
 			logger.Error("error verifying token", zap.Error(err))
-			handleError(w, domain.ErrInvalidAuthorizationHeader)
+			handleError(w, err)
 			return
 		}
 
 		// claims.Email is of the form <email,role>
 		identifier := strings.Split(claims.Email, ",")
 		if len(identifier) != 2 {
-			handleError(w, domain.ErrInvalidAuthorizationHeader)
+			handleError(w, domain.ErrInvalidToken)
 			return
 		}
 
 		email, role := identifier[0], identifier[len(identifier)-1]
 		if role != domain.RAdmin {
-			handleError(w, domain.NewUnauthorizedCError("authorization failed"))
+			handleError(w, domain.ErrInvalidToken)
 		}
 
 		// Set details from token in context
