@@ -15,7 +15,6 @@ import (
 	"owner-service/internal/adapter/logger"
 	"owner-service/internal/adapter/storage/mongodb"
 	"owner-service/internal/adapter/storage/mongodb/repository"
-	"owner-service/internal/adapter/storage/redis"
 	"owner-service/internal/core/service"
 
 	"github.com/go-playground/validator/v10"
@@ -69,16 +68,6 @@ func main() {
 	}
 	l.Info("Successfully run database migrations")
 
-	// Init cache service
-	cache, err := redis.New(ctx, &config.Redis)
-	if err != nil {
-		l.Error("Error initializing cache connection", zap.Error(err))
-		// os.Exit(1) // Cache is not being used at the moment
-	}
-	defer cache.Close()
-
-	l.Info("Successfully connected to the cache server")
-
 	// Init token service
 	tokenService := jwt.New(&config.Token)
 
@@ -94,16 +83,16 @@ func main() {
 	// Dependency injection
 	// Ping
 	pingRepo := repository.NewPingRepository(db)
-	pingService := service.NewPingService(pingRepo, cache)
+	pingService := service.NewPingService(pingRepo)
 	pingHandler := httpLib.NewPingHandler(pingService, validator.New())
 
 	// User
 	userRepo := repository.NewUserRepository(db)
-	userService := service.NewUserService(userRepo, cache, producer)
+	userService := service.NewUserService(userRepo, producer)
 	userHandler := httpLib.NewUserHandler(userService, validator.New())
 
 	// Auth
-	authService := service.NewAuthService(userRepo, tokenService, cache)
+	authService := service.NewAuthService(userRepo, tokenService)
 	authHandler := httpLib.NewAuthHandler(authService, validator.New())
 
 	// Init router

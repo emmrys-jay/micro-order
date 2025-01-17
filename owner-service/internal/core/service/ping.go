@@ -11,15 +11,13 @@ import (
  * PingService implements port.PingService interface
  */
 type PingService struct {
-	repo  port.PingRepository
-	cache port.CacheRepository
+	repo port.PingRepository
 }
 
 // NewAuthService creates a new auth service instance
-func NewPingService(repo port.PingRepository, cache port.CacheRepository) *PingService {
+func NewPingService(repo port.PingRepository) *PingService {
 	return &PingService{
 		repo,
-		cache,
 	}
 }
 

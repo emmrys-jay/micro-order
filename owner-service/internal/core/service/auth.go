@@ -17,17 +17,15 @@ import (
  * and token service
  */
 type AuthService struct {
-	repo  port.UserRepository
-	ts    port.TokenService
-	cache port.CacheRepository
+	repo port.UserRepository
+	ts   port.TokenService
 }
 
 // NewAuthService creates a new auth service instance
-func NewAuthService(repo port.UserRepository, ts port.TokenService, cache port.CacheRepository) *AuthService {
+func NewAuthService(repo port.UserRepository, ts port.TokenService) *AuthService {
 	return &AuthService{
 		repo,
 		ts,
-		cache,
 	}
 }
 

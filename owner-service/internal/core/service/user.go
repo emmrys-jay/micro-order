@@ -19,16 +19,14 @@ import (
  */
 type UserService struct {
 	repo     port.UserRepository
-	cache    port.CacheRepository
 	producer port.MessageQueueRepository
 }
 
 // NewUserService creates a new auth service instance
-func NewUserService(repo port.UserRepository, cache port.CacheRepository, producer port.MessageQueueRepository) *UserService {
+func NewUserService(repo port.UserRepository, producer port.MessageQueueRepository) *UserService {
 
 	return &UserService{
 		repo:     repo,
-		cache:    cache,
 		producer: producer,
 	}
 }

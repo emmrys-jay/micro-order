@@ -5,9 +5,6 @@ database:
   name: "owner-service"
   user: "owner"
   password: "password"
-redis:
-  address: "localhost:6380"
-  password: "password"
 server:
   httpUrl: "127.0.0.1"
   httpPort: "8081"
