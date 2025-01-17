@@ -74,11 +74,11 @@ func main() {
 	// Message Queue Producer
 	producer, err := rabbitmq.New(ctx, &config.Rabbitmq)
 	if err != nil {
-		l.Error("Error initializing Message Queue producer", zap.Error(err))
+		l.Error("Error initializing Message Broker producer", zap.Error(err))
 		os.Exit(1)
 	}
 
-	l.Info("Successfully connected to the message queue and created producer")
+	l.Info("Successfully connected to the message broker and created producer")
 
 	// Dependency injection
 	// Ping
