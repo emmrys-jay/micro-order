@@ -45,7 +45,7 @@ func (jt *JwtToken) CreateToken(id, email string, role string) (string, error) {
 	return token.SignedString([]byte(jt.SecretKey))
 }
 
-func (jt *JwtToken) VerifyToken(tokenString string) (domain.Claims, error) {
+func (jt *JwtToken) VerifyToken(tokenString string) (domain.Claims, domain.CError) {
 	token, err := jwt.ParseWithClaims(tokenString, &jwt.RegisteredClaims{}, func(token *jwt.Token) (interface{}, error) {
 		// Validate the signing algorithm
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
@@ -61,15 +61,15 @@ func (jt *JwtToken) VerifyToken(tokenString string) (domain.Claims, error) {
 	})
 	if err != nil {
 		if errors.Is(err, jwt.ErrTokenExpired) {
-			return domain.Claims{}, errors.New(domain.ErrExpiredToken.Error())
+			return domain.Claims{}, domain.ErrExpiredToken
 		} else {
-			return domain.Claims{}, errors.New("invalid token")
+			return domain.Claims{}, domain.ErrInvalidToken
 		}
 	}
 
 	claims, ok := token.Claims.(*jwt.RegisteredClaims)
 	if !(ok && token.Valid) {
-		return domain.Claims{}, errors.New("invalid token")
+		return domain.Claims{}, domain.ErrInvalidToken
 	}
 
 	return domain.Claims{

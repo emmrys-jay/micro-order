@@ -22,11 +22,6 @@ const (
 	authorizationType = "bearer"
 	// authorizationPayloadKey is the key for authorization payload in the context
 	authorizationPayloadKey = "authorization_payload"
-
-	// authContextKey is the key for the users context info
-	authContextKey contextKey = "user"
-	// correlationIDCtxKey is the key for the correlation id
-	correlationIDCtxKey contextKey = "correlation_id"
 )
 
 func authMiddleware(next http.Handler, token port.TokenService, logger *zap.Logger) http.HandlerFunc {
@@ -47,12 +42,12 @@ func authMiddleware(next http.Handler, token port.TokenService, logger *zap.Logg
 		claims, err := token.VerifyToken(fields[1])
 		if err != nil {
 			logger.Error("error verifying token", zap.Error(err))
-			handleError(w, domain.ErrInvalidAuthorizationHeader)
+			handleError(w, err)
 			return
 		}
 
 		// Set details from token in context
-		ctx := context.WithValue(r.Context(), authContextKey, contextInfo{
+		ctx := context.WithValue(r.Context(), domain.AuthContextKey, contextInfo{
 			ID:    claims.ID,
 			Email: claims.Email,
 		})
@@ -80,18 +75,20 @@ func requestLogger(next http.Handler) http.Handler {
 
 		ctx := context.WithValue(
 			r.Context(),
-			correlationIDCtxKey,
+			domain.CorrelationIDCtxKey,
 			correlationID,
 		)
 
 		r = r.WithContext(ctx)
 
-		l = l.With(zap.String(string(correlationIDCtxKey), correlationID))
+		ctx = logger.WithCtx(ctx, l.With(
+			zap.String(string(domain.CorrelationIDCtxKey), correlationID),
+		))
 		w.Header().Add("X-Correlation-ID", correlationID)
 
 		lrw := newLoggingResponseWriter(w)
 
-		r = r.WithContext(logger.WithCtx(ctx, l))
+		r = r.WithContext(ctx)
 
 		defer func(start time.Time) {
 			l.Info(
@@ -124,36 +121,31 @@ func adminMiddleware(next http.Handler, token port.TokenService, logger *zap.Log
 		fields := strings.Fields(tokenString)
 		isValid := len(fields) == 2
 		if !isValid {
-			handleError(w, domain.ErrInvalidAuthorizationType)
+			handleError(w, domain.ErrInvalidAuthorizationHeader)
 			return
 		}
 
 		claims, err := token.VerifyToken(fields[1])
 		if err != nil {
-			if err.Error() == domain.ErrExpiredToken.Error() {
-				handleError(w, domain.ErrExpiredToken)
-				return
-			}
-
 			logger.Error("error verifying token", zap.Error(err))
-			handleError(w, domain.ErrInvalidAuthorizationHeader)
+			handleError(w, err)
 			return
 		}
 
 		// claims.Email is of the form <email,role>
 		identifier := strings.Split(claims.Email, ",")
 		if len(identifier) != 2 {
-			handleError(w, domain.ErrInvalidAuthorizationHeader)
+			handleError(w, domain.ErrInvalidToken)
 			return
 		}
 
 		email, role := identifier[0], identifier[len(identifier)-1]
 		if role != domain.RAdmin.String() {
-			handleError(w, domain.NewUnauthorizedCError("authorization failed"))
+			handleError(w, domain.ErrUnauthorized)
 		}
 
 		// Set details from token in context
-		ctx := context.WithValue(r.Context(), authContextKey, contextInfo{
+		ctx := context.WithValue(r.Context(), domain.AuthContextKey, contextInfo{
 			ID:    claims.ID,
 			Email: email,
 		})

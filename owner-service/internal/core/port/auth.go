@@ -11,7 +11,7 @@ type TokenService interface {
 	// CreateToken creates a new token for a given user
 	CreateToken(id, email string, role string) (string, error)
 	// VerifyToken verifies the token and returns the payload
-	VerifyToken(tokenString string) (domain.Claims, error)
+	VerifyToken(tokenString string) (domain.Claims, domain.CError)
 }
 
 // UserService is an interface for interacting with user authentication-related business logic
