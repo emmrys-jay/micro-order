@@ -3,6 +3,7 @@ package config
 type RedisConfiguration struct {
 	Address  string
 	Password string
+	Ttl      string
 }
 
 type DatabaseConfiguration struct {

@@ -7,6 +7,7 @@ import (
 	"product-service/internal/adapter/logger"
 	"product-service/internal/core/domain"
 	"product-service/internal/core/service/user"
+	"product-service/internal/core/util"
 
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.uber.org/zap"
@@ -24,8 +25,27 @@ func newUserClient(conf *config.DiscoveryConfiguration) (*grpc.ClientConn, user.
 	return conn, userClient, nil
 }
 
-func GetUser(ctx context.Context, userId primitive.ObjectID) (resp *user.UserResponse, cerr domain.CError) {
+func (ps *ProductService) GetUser(ctx context.Context, userId primitive.ObjectID) (*user.UserResponse, domain.CError) {
 	log := logger.FromCtx(ctx)
+	userIdString := userId.Hex()
+
+	log.Info("Checking if user exists in cache", zap.String("user_id", userIdString))
+
+	cacheKey := util.GenerateCacheKey("user", userIdString)
+	cachedUser, err := ps.cache.Get(ctx, cacheKey)
+	if err == nil {
+		log.Info("User with id found in cache", zap.String("user_id", userIdString))
+
+		var user user.UserResponse
+		err := util.Deserialize(cachedUser, &user)
+		if err != nil {
+			log.Error("Error deserializing found user in cache", zap.Error(err))
+			return nil, domain.ErrInternal
+		}
+
+		return &user, nil
+	}
+	log.Info("User not found in cache")
 
 	grpcConn, grpcClient, err := newUserClient(&config.GetConfig().Discovery)
 	if err != nil {
@@ -35,14 +55,30 @@ func GetUser(ctx context.Context, userId primitive.ObjectID) (resp *user.UserRes
 	defer grpcConn.Close()
 
 	log.Info("Created new grpc user client")
-	log.Info("Making request to fetch user", zap.String("user_id", userId.Hex()))
+	log.Info("Making request to fetch user", zap.String("user_id", userIdString))
 
-	resp, err = grpcClient.Get(context.Background(), &user.UserRequest{UserId: userId.Hex()})
+	user, err := grpcClient.Get(context.Background(), &user.UserRequest{UserId: userIdString})
 	if err != nil {
 		log.Error("Error fetching user", zap.Error(err))
 		return nil, domain.ErrInternal
 	}
 
 	log.Info("Successfully fetched user")
-	return resp, nil
+	log.Info("Saving returned user to cache")
+
+	serialUser, err := util.Serialize(user)
+	if err != nil {
+		log.Error("Error serializing user", zap.Error(err))
+		return nil, domain.ErrInternal
+	}
+
+	err = ps.cache.Set(ctx, cacheKey, serialUser, ps.cacheTtl)
+	if err != nil {
+		log.Error("Error saving returned user to cache", zap.Error(err))
+		return nil, domain.ErrInternal
+	}
+
+	log.Info("Successfully saved user to cache")
+
+	return user, nil
 }

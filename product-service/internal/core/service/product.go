@@ -4,7 +4,9 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"time"
 
+	"product-service/internal/adapter/config"
 	"product-service/internal/adapter/logger"
 	"product-service/internal/core/domain"
 	"product-service/internal/core/port"
@@ -22,14 +24,22 @@ type ProductService struct {
 	repo     port.ProductRepository
 	cache    port.CacheRepository
 	producer port.MessageQueueRepository
+	cacheTtl time.Duration
 }
 
 // NewProductService creates a new product service instance
 func NewProductService(repo port.ProductRepository, cache port.CacheRepository, producer port.MessageQueueRepository) *ProductService {
+	cacheTtl, err := time.ParseDuration(config.GetConfig().Redis.Ttl)
+	if err != nil {
+		zap.L().Info("Error parsing cache ttl, defaulting to 24h", zap.Error(err))
+		cacheTtl = 24 * time.Hour
+	}
+
 	return &ProductService{
 		repo,
 		cache,
 		producer,
+		cacheTtl,
 	}
 }
 
@@ -43,7 +53,7 @@ func (ps *ProductService) CreateProduct(ctx context.Context, prod *domain.Create
 		Status:      domain.ProductStatusActive,
 	}
 
-	retUser, err := GetUser(context.Background(), userID)
+	retUser, err := ps.GetUser(context.Background(), userID)
 	if err != nil {
 		log.Error("Error fetching user", zap.Error(err))
 		return nil, domain.ErrInternal
