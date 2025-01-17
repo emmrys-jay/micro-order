@@ -36,6 +36,14 @@ func (ur *UserRepository) CreateUser(ctx context.Context, user *domain.User) (*d
 
 	_, err := ur.collection.InsertOne(ctx, user)
 	if err != nil {
+		if writeException, ok := err.(mongo.WriteException); ok {
+			for _, writeError := range writeException.WriteErrors {
+				if writeError.Code == 11000 {
+					return nil, domain.ErrConflictingData
+				}
+			}
+		}
+
 		return nil, domain.NewInternalCError(err.Error())
 	}
 
@@ -105,6 +113,7 @@ func (ur *UserRepository) UpdateUser(ctx context.Context, user *domain.User) (*d
 		"$set": bson.M{
 			"first_name": user.FirstName,
 			"last_name":  user.LastName,
+			"phone":      user.Phone,
 			"updated_at": user.UpdatedAt,
 		},
 	}

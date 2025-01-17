@@ -7,6 +7,7 @@ import (
 
 	"owner-service/internal/adapter/config"
 
+	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
@@ -38,7 +39,8 @@ func dsn(config *config.DatabaseConfiguration) string {
 // New creates a new MongoDB database instance
 func New(ctx context.Context, config *config.DatabaseConfiguration) (*DB, error) {
 	url := dsn(config)
-	zap.L().Info("Connecting to the database", zap.String("url", url))
+	logger := zap.L()
+	logger.Info("Connecting to the database", zap.String("url", url))
 
 	clientOptions := options.Client().ApplyURI(url)
 
@@ -71,4 +73,22 @@ func (db *DB) Close() {
 // Url returns the MongoDB connection string
 func (db *DB) Url() string {
 	return db.url
+}
+
+func (db *DB) RunMigrations(ctx context.Context, config *config.DatabaseConfiguration) error {
+	// Define the index model
+	indexModel := mongo.IndexModel{
+		Keys:    bson.D{{Key: "email", Value: 1}},
+		Options: options.Index().SetUnique(true).SetName("email_unique_index"),
+	}
+
+	database := db.Client.Database(config.Name)
+
+	// Create the index
+	_, err := database.Collection("users").Indexes().CreateOne(ctx, indexModel)
+	if err != nil {
+		return fmt.Errorf("Error creating index, %w", err)
+	}
+
+	return nil
 }
