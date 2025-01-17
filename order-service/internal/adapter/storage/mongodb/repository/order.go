@@ -63,6 +63,7 @@ func (or *OrderRepository) CreateOrder(ctx context.Context, order *domain.Order)
 			orderItems[i].OrderID = order.ID
 			orderItems[i].ID = primitive.NewObjectID()
 			orderItems[i].CreatedAt = time.Now()
+			orderItems[i].UpdatedAt = time.Now()
 			items[i] = orderItems[i]
 		}
 
@@ -172,4 +173,25 @@ func (or *OrderRepository) UpdateOrder(ctx context.Context, order *domain.Order)
 	}
 
 	return order, nil
+}
+
+func (or *OrderRepository) UpdateOrderProducts(ctx context.Context, prod *domain.ProductUpdateFromQueue) (int64, domain.CError) {
+	oId, err := primitive.ObjectIDFromHex(prod.Id)
+	if err != nil {
+		return -1, domain.NewBadRequestCError("Error parsing product id received: " + err.Error())
+	}
+
+	filter := bson.M{"product_id": oId}
+	update := bson.M{
+		"$set": bson.M{
+			"product_name": prod.Name,
+		},
+	}
+
+	res, err := or.itemsCol.UpdateMany(ctx, filter, update)
+	if err != nil {
+		return -1, domain.NewInternalCError("error updating order: " + err.Error())
+	}
+
+	return res.MatchedCount, nil
 }

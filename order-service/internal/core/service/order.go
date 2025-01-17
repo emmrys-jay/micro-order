@@ -9,6 +9,7 @@ import (
 	"order-service/internal/adapter/logger"
 	"order-service/internal/core/domain"
 	"order-service/internal/core/port"
+	"order-service/internal/core/util"
 
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.uber.org/zap"
@@ -196,4 +197,38 @@ func (os *OrderService) CancelOrder(ctx context.Context, id primitive.ObjectID) 
 
 	retOrder.Status = order.Status // Add the updated status to the order struct to be returned
 	return retOrder, nil
+}
+
+func (os *OrderService) UpdateOrdersFromQueue(log *zap.Logger, msg []byte) error {
+	log.Info("Received a new message", zap.String("update", string(msg)))
+	ctx := context.Background()
+
+	var update domain.ProductUpdateFromQueue
+	err := util.Deserialize(msg, &update)
+	if err != nil {
+		log.Error("Could not deserialize message for updating orders", zap.Error(err))
+		return err
+	}
+	if update.NameIsUpdated {
+
+		updatedOrderItems, err := os.repo.UpdateOrderProducts(ctx, &update)
+		if err != nil {
+			log.Error("Could not update products in orders", zap.Error(err))
+			return err
+		}
+
+		log.Info(fmt.Sprintf("Successfully updated %v products", updatedOrderItems))
+	}
+
+	// Save to cache
+	log.Info("Saving the received product to cache...")
+	cacheKey := util.GenerateCacheKey("product", update.Id)
+
+	err = os.cache.Set(ctx, cacheKey, msg, os.cacheTtl)
+	if err != nil {
+		log.Error("Could not save product update in cache", zap.Error(err))
+	}
+	log.Info("Successfully saved the product update to cache")
+
+	return nil
 }

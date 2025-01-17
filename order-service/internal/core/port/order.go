@@ -18,6 +18,8 @@ type OrderRepository interface {
 	ListOrders(ctx context.Context, userId primitive.ObjectID) ([]domain.Order, domain.CError)
 	// UpdateOrder updates a single order and retuns the updated order
 	UpdateOrder(ctx context.Context, order *domain.Order) (*domain.Order, domain.CError)
+	// UpdateOrderProductsupdates the name of all order items with the prod
+	UpdateOrderProducts(ctx context.Context, prod *domain.ProductUpdateFromQueue) (int64, domain.CError)
 }
 
 // OrderService is an interface for interacting with order-related business logic

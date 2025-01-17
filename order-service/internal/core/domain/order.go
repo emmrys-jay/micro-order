@@ -55,6 +55,7 @@ type OrderItem struct {
 	Quantity    int32              `json:"quantity" bson:"quantity"`
 	UnitPrice   float64            `json:"unit_price" bson:"unit_price"`
 	CreatedAt   time.Time          `json:"created_at" bson:"created_at"`
+	UpdatedAt   time.Time          `json:"updated_at" bson:"updated_at"`
 }
 
 type ProductInfo struct {

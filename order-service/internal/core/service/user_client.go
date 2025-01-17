@@ -28,7 +28,7 @@ func newUserClient(conf *config.DiscoveryConfiguration) (*grpc.ClientConn, user.
 func (os *OrderService) GetUser(ctx context.Context, userId primitive.ObjectID) (exists bool, cerr domain.CError) {
 	log := logger.FromCtx(ctx)
 
-	log.Info("Checking if user exists in cache", zap.String("product_id", userId.Hex()))
+	log.Info("Checking if user exists in cache", zap.String("user_id", userId.Hex()))
 	cacheKey := util.GenerateCacheKey("user", userId.Hex())
 	_, err := os.cache.Get(ctx, cacheKey)
 	if err == nil {

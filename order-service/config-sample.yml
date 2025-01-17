@@ -24,3 +24,6 @@ token:
 discovery:
   ownerUrl: "127.0.0.1:8091"
   productUrl: "127.0.0.1:8090"
+rabbitmq:
+  user: "admin"
+  password: "password"

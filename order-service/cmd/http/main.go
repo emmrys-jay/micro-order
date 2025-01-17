@@ -8,6 +8,7 @@ import (
 
 	_ "order-service/docs"
 	"order-service/internal/adapter/auth/jwt"
+	"order-service/internal/adapter/broker/rabbitmq"
 	"order-service/internal/adapter/config"
 	httpLib "order-service/internal/adapter/handler/http"
 	"order-service/internal/adapter/logger"
@@ -95,6 +96,20 @@ func main() {
 		l.Error("Error initializing router ", zap.Error(err))
 		os.Exit(1)
 	}
+
+	// Message Queue Consumer 1
+	consumer1, err := rabbitmq.New(ctx, &config.Rabbitmq)
+	if err != nil {
+		l.Error("Error initializing Message Queue consumer", zap.Error(err))
+		os.Exit(1)
+	}
+
+	l.Info("Successfully connected to the message queue and created consumer")
+
+	// Start consumer
+	queue := "product-updates"
+	l.Info("Starting consumer on", zap.String("queue", queue))
+	go consumer1.Consume(ctx, queue, orderService.UpdateOrdersFromQueue)
 
 	// Start server
 	listenAddr := fmt.Sprintf("%s:%s", config.Server.HttpUrl, config.Server.HttpPort)
