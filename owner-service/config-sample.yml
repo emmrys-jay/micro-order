@@ -23,3 +23,7 @@ token:
 admin:
   email: "owner-admin@gmail.com"
   password: "password"
+rabbitmq:
+  user: "admin"
+  password: "password"
+  host: "localhost:5672"

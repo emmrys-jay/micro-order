@@ -37,6 +37,12 @@ type AdminConfiguration struct {
 	Password string
 }
 
+type RabbitMqConfiguration struct {
+	User     string
+	Password string
+	Host     string
+}
+
 type Configuration struct {
 	App      AppConfiguration
 	Server   ServerConfiguration
@@ -44,4 +50,5 @@ type Configuration struct {
 	Redis    RedisConfiguration
 	Token    TokenConfiguration
 	Admin    AdminConfiguration
+	Rabbitmq RabbitMqConfiguration
 }

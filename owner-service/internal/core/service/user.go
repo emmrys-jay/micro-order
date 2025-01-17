@@ -7,6 +7,7 @@ import (
 	"owner-service/internal/adapter/logger"
 	"owner-service/internal/core/domain"
 	"owner-service/internal/core/port"
+	"owner-service/internal/core/service/user"
 	"owner-service/internal/core/util"
 
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -17,15 +18,18 @@ import (
  * UserService implements port.UserService interface
  */
 type UserService struct {
-	repo  port.UserRepository
-	cache port.CacheRepository
+	repo     port.UserRepository
+	cache    port.CacheRepository
+	producer port.MessageQueueRepository
 }
 
 // NewUserService creates a new auth service instance
-func NewUserService(repo port.UserRepository, cache port.CacheRepository) *UserService {
+func NewUserService(repo port.UserRepository, cache port.CacheRepository, producer port.MessageQueueRepository) *UserService {
+
 	return &UserService{
-		repo,
-		cache,
+		repo:     repo,
+		cache:    cache,
+		producer: producer,
 	}
 }
 
@@ -95,13 +99,13 @@ func (us *UserService) ListUsers(ctx context.Context) ([]domain.User, domain.CEr
 }
 
 func (us *UserService) UpdateUser(ctx context.Context, id primitive.ObjectID, req *domain.UpdateUserRequest) (*domain.User, domain.CError) {
+	log := logger.FromCtx(ctx)
 	retUser, cerr := us.GetUser(ctx, id)
 	if cerr != nil {
 		return nil, cerr
 	}
 
-	if req.FirstName == retUser.FirstName && req.LastName == retUser.LastName &&
-		req.Role == retUser.Role.String() && retUser.Phone == req.Phone {
+	if req.FirstName == retUser.FirstName && req.LastName == retUser.LastName && retUser.Phone == req.Phone {
 		return nil, domain.NewCError(http.StatusBadRequest, "There are no changes to update")
 	}
 
@@ -109,20 +113,51 @@ func (us *UserService) UpdateUser(ctx context.Context, id primitive.ObjectID, re
 	retUser.LastName = req.LastName
 	retUser.Phone = req.Phone
 
-	if role, ok := domain.StringToUserRole[req.Role]; ok {
-		retUser.Role = role
-	}
+	// if role, ok := domain.StringToUserRole[req.Role]; ok {
+	// 	retUser.Role = role
+	// }
 
 	userResponse, cerr := us.repo.UpdateUser(ctx, retUser)
 	if cerr != nil {
 		if cerr.Code() == 500 {
 
-			logger.FromCtx(ctx).Error("Error updating user", zap.Error(cerr))
+			log.Error("Error updating user", zap.Error(cerr))
 			return nil, domain.ErrInternal
 		}
 		return nil, cerr
 	}
 	userResponse.Password = ""
+
+	// Produce update to the queue
+	ownerUpdate := user.UserUpdateForQueue{
+		Id:        userResponse.ID.Hex(),
+		FirstName: userResponse.FirstName,
+		LastName:  userResponse.LastName,
+		Email:     userResponse.Email,
+		Password:  userResponse.Password,
+		Phone:     userResponse.Phone,
+		IsActive:  userResponse.IsActive,
+		CreatedAt: userResponse.CreatedAt.String(),
+		UpdatedAt: userResponse.UpdatedAt.String(),
+	}
+
+	msg, err := util.Serialize(ownerUpdate)
+	if err != nil {
+		log.Error("Error serializing user update", zap.Error(cerr))
+		return userResponse, nil
+	}
+
+	// Publish message to queue
+	queue := "user-updates"
+	log.Info("Publishing message about update to queue", zap.String("queue", queue))
+	correlationId := ctx.Value(domain.CorrelationIDCtxKey)
+
+	err = us.producer.Publish(ctx, queue, msg, map[string]any{string(domain.CorrelationIDCtxKey): correlationId})
+	if err != nil {
+		log.Error("Error publishing message to the queue", zap.Error(err))
+		return userResponse, nil
+	}
+	log.Info("Successfully published message about update to queue")
 
 	return userResponse, nil
 }

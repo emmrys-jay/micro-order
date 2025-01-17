@@ -9,6 +9,7 @@ import (
 
 	_ "owner-service/docs"
 	"owner-service/internal/adapter/auth/jwt"
+	"owner-service/internal/adapter/broker/rabbitmq"
 	"owner-service/internal/adapter/config"
 	httpLib "owner-service/internal/adapter/handler/http"
 	"owner-service/internal/adapter/logger"
@@ -58,8 +59,15 @@ func main() {
 		os.Exit(1)
 	}
 	defer db.Close()
-
 	l.Info("Successfully connected to the database")
+
+	// Run Migrations
+	err = db.RunMigrations(ctx, &config.Database)
+	if err != nil {
+		l.Error("Error running database migrations", zap.Error(err))
+		os.Exit(1)
+	}
+	l.Info("Successfully run database migrations")
 
 	// Init cache service
 	cache, err := redis.New(ctx, &config.Redis)
@@ -74,6 +82,15 @@ func main() {
 	// Init token service
 	tokenService := jwt.New(&config.Token)
 
+	// Message Queue Producer
+	producer, err := rabbitmq.New(ctx, &config.Rabbitmq)
+	if err != nil {
+		l.Error("Error initializing Message Queue producer", zap.Error(err))
+		os.Exit(1)
+	}
+
+	l.Info("Successfully connected to the message queue and created producer")
+
 	// Dependency injection
 	// Ping
 	pingRepo := repository.NewPingRepository(db)
@@ -82,7 +99,7 @@ func main() {
 
 	// User
 	userRepo := repository.NewUserRepository(db)
-	userService := service.NewUserService(userRepo, cache)
+	userService := service.NewUserService(userRepo, cache, producer)
 	userHandler := httpLib.NewUserHandler(userService, validator.New())
 
 	// Auth
