@@ -30,12 +30,13 @@ func newProductClient(conf *config.DiscoveryConfiguration) (*grpc.ClientConn, pr
 
 func (os *OrderService) GetProduct(ctx context.Context, productId primitive.ObjectID) (*product.ProductResponse, domain.CError) {
 	log := logger.FromCtx(ctx)
+	productIdString := productId.Hex()
 
-	log.Info("Checking if product exists in cache", zap.String("product_id", productId.Hex()))
-	cacheKey := util.GenerateCacheKey("product", productId.Hex())
+	log.Info("Checking if product exists in cache", zap.String("product_id", productIdString))
+	cacheKey := util.GenerateCacheKey("product", productIdString)
 	cachedProd, err := os.cache.Get(ctx, cacheKey)
 	if err == nil {
-		log.Info("Product with id found in cache", zap.String("product_id", productId.Hex()))
+		log.Info("Product with id found in cache", zap.String("product_id", productIdString))
 
 		var product product.ProductResponse
 		err := util.Deserialize(cachedProd, &product)
@@ -56,9 +57,9 @@ func (os *OrderService) GetProduct(ctx context.Context, productId primitive.Obje
 	defer grpcConn.Close()
 
 	log.Info("Created new grpc product client")
-	log.Info("Making request to fetch product", zap.String("product_id", productId.Hex()))
+	log.Info("Making request to fetch product", zap.String("product_id", productIdString))
 
-	product, err := grpcClient.Get(context.Background(), &product.ProductRequest{ProductId: productId.Hex()})
+	product, err := grpcClient.Get(context.Background(), &product.ProductRequest{ProductId: productIdString})
 	if err != nil {
 		log.Error("Error getting product", zap.Error(err))
 		return nil, domain.ErrInternal
@@ -78,6 +79,8 @@ func (os *OrderService) GetProduct(ctx context.Context, productId primitive.Obje
 		log.Error("Error saving returned product to cache", zap.Error(err))
 		return nil, domain.ErrInternal
 	}
+
+	log.Info("Successfully saved product to cache")
 
 	return product, nil
 }

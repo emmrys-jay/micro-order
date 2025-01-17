@@ -29,6 +29,7 @@ func (os *OrderService) GetUser(ctx context.Context, userId primitive.ObjectID) 
 	log := logger.FromCtx(ctx)
 
 	log.Info("Checking if user exists in cache", zap.String("user_id", userId.Hex()))
+
 	cacheKey := util.GenerateCacheKey("user", userId.Hex())
 	_, err := os.cache.Get(ctx, cacheKey)
 	if err == nil {
@@ -51,9 +52,10 @@ func (os *OrderService) GetUser(ctx context.Context, userId primitive.ObjectID) 
 		log.Error("Error fetching user", zap.Error(err))
 		return false, domain.ErrInternal
 	}
-	log.Info("Successfully fetched user")
 
+	log.Info("Successfully fetched user")
 	log.Info("Saving user to cache")
+
 	sUser, err := util.Serialize(user)
 	if err != nil {
 		log.Error("Error serializing user", zap.Error(err))
@@ -65,6 +67,8 @@ func (os *OrderService) GetUser(ctx context.Context, userId primitive.ObjectID) 
 		log.Error("Error saving returned user to cache", zap.Error(err))
 		return false, domain.ErrInternal
 	}
+
+	log.Info("Successfully saved user to cache")
 
 	return true, nil
 }
