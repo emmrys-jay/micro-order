@@ -74,8 +74,9 @@ Detailed information can be found in each service README file.
   - Order-Service: `http://localhost:8080`
 
 ### TODO
-- Add mechanism to handle consecutive consumer errors when handling events.
-- Security fixes
+- [ ] Add mechanism to handle consecutive consumer errors when handling events.
+- [ ] Security fixes
+- [ ] Swagger documentation for each service
 
 ## Contributing
 Contributions are welcome! Please follow these steps:
