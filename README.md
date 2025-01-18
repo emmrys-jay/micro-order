@@ -1,5 +1,4 @@
-# Micro-Order Project
-This project was built according to requirements for an interview assessment.
+# Micro-Order
 
 ## Overview
 The **Micro-Order** project is a microservice-based application that consists of three main services:
@@ -11,7 +10,7 @@ The **Micro-Order** project is a microservice-based application that consists of
 
 ### Owner-Service
 This service is responsible for managing the owners of the products. It includes functionalities such as:
-- Creating a new owner
+- Creating a new owner (user)
 - Updating owner details
 - Deleting an owner
 - Retrieving owner information
