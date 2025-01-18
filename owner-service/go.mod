@@ -7,10 +7,8 @@ require (
 	github.com/go-chi/cors v1.2.1
 	github.com/go-playground/validator/v10 v10.23.0
 	github.com/golang-jwt/jwt/v5 v5.2.1
-	github.com/golang-migrate/migrate/v4 v4.18.1
 	github.com/grpc-ecosystem/go-grpc-middleware v1.4.0
 	github.com/rabbitmq/amqp091-go v1.10.0
-	github.com/redis/go-redis/v9 v9.7.0
 	github.com/rs/xid v1.6.0
 	github.com/spf13/viper v1.19.0
 	github.com/swaggo/http-swagger/v2 v2.0.2
@@ -25,8 +23,6 @@ require (
 
 require (
 	github.com/KyleBanks/depth v1.2.1 // indirect
-	github.com/cespare/xxhash/v2 v2.3.0 // indirect
-	github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f // indirect
 	github.com/fsnotify/fsnotify v1.8.0 // indirect
 	github.com/gabriel-vasile/mimetype v1.4.3 // indirect
 	github.com/go-openapi/jsonpointer v0.21.0 // indirect
@@ -46,6 +42,7 @@ require (
 	github.com/mitchellh/mapstructure v1.5.0 // indirect
 	github.com/montanaflynn/stats v0.7.1 // indirect
 	github.com/pelletier/go-toml/v2 v2.2.3 // indirect
+	github.com/rogpeppe/go-internal v1.12.0 // indirect
 	github.com/sagikazarmark/locafero v0.6.0 // indirect
 	github.com/sagikazarmark/slog-shim v0.1.0 // indirect
 	github.com/sourcegraph/conc v0.3.0 // indirect
@@ -58,7 +55,6 @@ require (
 	github.com/xdg-go/scram v1.1.2 // indirect
 	github.com/xdg-go/stringprep v1.0.4 // indirect
 	github.com/youmark/pkcs8 v0.0.0-20240726163527-a2c0da244d78 // indirect
-	go.uber.org/atomic v1.11.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	golang.org/x/exp v0.0.0-20250106191152-7588d65b2ba8 // indirect
 	golang.org/x/net v0.34.0 // indirect
