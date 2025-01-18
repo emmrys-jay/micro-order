@@ -10,13 +10,13 @@
  - [Air](https://github.com/air-verse/air)
  
  This service is responsible for managing CRUD operations for products. It consists of several components:
- 1. MongoDB Database: Used for storing product data.
- 2. Redis cache: Used for caching users fetched from other services to prevent always making those calls.
- 3. HTTP Server: Runs on port 8082 to handle HTTP requests.
- 4. gRPC Server: Runs on port 8092 to handle gRPC requests to get a single product or multiple products.
- 5. gRPC Client: Fetches user information to assign an owner during creation of a product.
- 6. RabbitMQ Producer: Sends product updates to the "product-updates" queue.
- 7. RabbitMQ Consumer: Receives user updates from the "user-updates" queue.
+ 1. ***MongoDB Database***: Used for storing product data.
+ 2. ***Redis cache***: Used for caching users fetched from other services to prevent always making those calls.
+ 3. ***HTTP Server***: Runs on port 8082 to handle HTTP requests.
+ 4. ***gRPC Server***: Runs on port 8092 to handle gRPC requests to get a single product or multiple products.
+ 5. ***gRPC Client***: Fetches user information to assign an owner during creation of a product.
+ 6. ***RabbitMQ Producer***: Sends product updates to the "product-updates" queue.
+ 7. ***RabbitMQ Consumer***: Receives user updates from the "user-updates" queue.
  
  To start the database, use the command:
  ```
