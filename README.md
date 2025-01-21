@@ -33,7 +33,7 @@ This service manages the orders placed by customers. It includes functionalities
 Detailed information can be found in each service README file.
 
 ## Project Architecture
-![Micro-order drawio](https://github.com/user-attachments/assets/83b35bfd-a3ff-47f5-b289-a270f514da32)
+![Micro-order drawio (2)](https://github.com/user-attachments/assets/9c5f58e7-bcd7-4858-9070-4b540a99323c)
 
 
 ## Getting Started
