@@ -1,4 +1,5 @@
 # Micro-Order
+This was inspired by an assessment for a senior backend engineer role.
 
 ## Overview
 The **Micro-Order** project is a microservice-based application that consists of three main services:
@@ -30,6 +31,10 @@ This service manages the orders placed by customers. It includes functionalities
 - Retrieving order information
 
 Detailed information can be found in each service README file.
+
+## Project Architecture
+![Micro-order drawio](https://github.com/user-attachments/assets/83b35bfd-a3ff-47f5-b289-a270f514da32)
+
 
 ## Getting Started
 
@@ -74,9 +79,10 @@ Detailed information can be found in each service README file.
   - Order-Service: `http://localhost:8080`
 
 ### TODO
-- [ ] Add mechanism to handle consumer errors when handling events.
+- [ ] Add mechanism to handle consumer errors when handling events
 - [ ] Security fixes
 - [ ] Swagger documentation for each service
+- [ ] Proper Error handling between grpc calls
 
 ## Contributing
 Contributions are welcome! Please follow these steps:
